@@ -275,6 +275,18 @@
                 min="0.01"
                 step="0.01"
             >
+
+            <label for="dreamExtraCd">
+                額外-CD (紋章/技能) (%)
+            </label>
+            <input
+                type="number"
+                id="dreamExtraCd"
+                placeholder="自選填寫，例如 10"
+                min="0"
+                max="100"
+                step="0.01"
+            >
         </div>
 
 
@@ -303,6 +315,18 @@
                 min="0.01"
                 step="0.01"
             >
+
+            <label for="redExtraCd">
+                額外-CD (紋章/技能) (%)
+            </label>
+            <input
+                type="number"
+                id="redExtraCd"
+                placeholder="自選填寫，例如 10"
+                min="0"
+                max="100"
+                step="0.01"
+            >
         </div>
 
 
@@ -329,6 +353,18 @@
                 id="greenCooldown"
                 value="10"
                 min="0.01"
+                step="0.01"
+            >
+
+            <label for="greenExtraCd">
+                額外-CD (紋章/技能) (%)
+            </label>
+            <input
+                type="number"
+                id="greenExtraCd"
+                placeholder="自選填寫，例如 10"
+                min="0"
+                max="100"
                 step="0.01"
             >
         </div>
@@ -376,11 +412,12 @@
 
     <div class="note">
         <strong>📌 計算規則：</strong><br>
-        ① 每招技能都有自己的「每次命中收集古代技能 %」與「原始冷卻時間」。<br>
-        ② 裝備對應+10以上龍玉後，該技能冷卻時間減少 <strong>20%</strong>。<br>
-        ③ 裝備龍玉後的實際 CD = 原始 CD × <strong>0.8</strong>。<br>
-        ④ 一般情況只能同時裝備 2 顆龍玉，因此會比較全部 3 種組合。<br>
-        ⑤ 以「平均每秒可收集多少古代技能 %」判斷哪一組效率最高。<br>
+        ① 每招技能都有自己的「每次命中收集古代技能 %」、「原始冷卻時間」與可選填的「額外-CD (紋章/技能) %」。<br>
+        ② 額外-CD 留空時視為 <strong>0%</strong>；填寫後先套用：實際 CD = 原始 CD × (1 - 額外-CD%)。<br>
+        ③ 裝備對應+10以上龍玉後，該技能冷卻時間再減少 <strong>20%</strong>。<br>
+        ④ 裝備龍玉後的最終 CD = 套用額外-CD後的 CD × <strong>0.8</strong>。<br>
+        ⑤ 一般情況只能同時裝備 2 顆龍玉，因此會比較全部 3 種組合。<br>
+        ⑥ 以「平均每秒可收集多少古代技能 %」判斷哪一組效率最高。<br>
         <br>
 
         <strong>※ 計算前提：</strong>
@@ -413,7 +450,10 @@
     /**
      * 取得單一技能資料
      */
-    function getSkill(name, percentId, cooldownId) {
+    function getSkill(name, percentId, cooldownId, extraCdId) {
+
+        const extraCdValue =
+            document.getElementById(extraCdId).value.trim();
 
         return {
             name: name,
@@ -422,7 +462,10 @@
             ),
             cooldown: parseFloat(
                 document.getElementById(cooldownId).value
-            )
+            ),
+            extraCd: extraCdValue === ""
+                ? 0
+                : parseFloat(extraCdValue)
         };
 
     }
@@ -437,19 +480,22 @@
         const dream = getSkill(
             "夢幻龍玉",
             "dreamPercent",
-            "dreamCooldown"
+            "dreamCooldown",
+            "dreamExtraCd"
         );
 
         const red = getSkill(
             "赤月龍玉",
             "redPercent",
-            "redCooldown"
+            "redCooldown",
+            "redExtraCd"
         );
 
         const green = getSkill(
             "蒼翠龍玉",
             "greenPercent",
-            "greenCooldown"
+            "greenCooldown",
+            "greenExtraCd"
         );
 
 
@@ -466,12 +512,15 @@
             if (
                 isNaN(skill.percent) ||
                 isNaN(skill.cooldown) ||
+                isNaN(skill.extraCd) ||
                 skill.percent < 0 ||
-                skill.cooldown <= 0
+                skill.cooldown <= 0 ||
+                skill.extraCd < 0 ||
+                skill.extraCd > 100
             ) {
                 alert(
-                    "請輸入正確的古代技能收集 % 與冷卻時間！\n" +
-                    "收集 % 不可小於 0，冷卻時間必須大於 0。"
+                    "請輸入正確的數值！\n" +
+                    "收集 % 不可小於 0，冷卻時間必須大於 0，額外-CD 必須介於 0%～100%。"
                 );
 
                 return;
@@ -530,7 +579,8 @@
             for (const skill of skills) {
 
                 let actualCooldown =
-                    skill.cooldown;
+                    skill.cooldown *
+                    (1 - skill.extraCd / 100);
 
 
                 /**
@@ -546,7 +596,7 @@
                     combo.gems.includes(skill.name)
                 ) {
                     actualCooldown =
-                        skill.cooldown * 0.8;
+                        actualCooldown * 0.8;
                 }
 
 

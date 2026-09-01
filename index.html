@@ -431,7 +431,7 @@
 
 <div class="card">
 
-    <h2>📊 三種龍玉組合效率比較</h2>
+    <h2>📊 三種龍玉組合效率比較（只放2招情況效率）</h2>
 
     <table>
         <thead>
@@ -444,6 +444,27 @@
         </thead>
 
         <tbody id="resultTable">
+            <tr>
+                <td colspan="4">
+                    請先輸入數值並按下「開始計算」
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>🔍 三招技能效率比較（第三招不計算龍玉 -20%）</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>龍玉組合</th>
+                <th>第三招（不吃龍玉 -20%）</th>
+                <th>三招每秒古代收集 (%)</th>
+                <th>集滿 100% 預估時間</th>
+            </tr>
+        </thead>
+
+        <tbody id="threeSkillResultTable">
             <tr>
                 <td colspan="4">
                     請先輸入數值並按下「開始計算」
@@ -468,6 +489,7 @@
         ⑤ 勾選「班/表BUFF」後，每次收集古代技能量增加 <strong>4%</strong>；例如 10% 會變成 10.4%。<br>
         ⑥ 一般情況只能同時裝備 2 顆龍玉，因此會比較全部 3 種組合。<br>
         ⑦ 以「平均每秒可收集多少古代技能 %」判斷哪一組效率最高。<br>
+        ⑧ 下方「三招技能效率比較」會把 3 招全部計入，但只有裝備的 2 顆龍玉技能享有 -20% CD；第 3 招不計算龍玉 -20%。<br>
         <br>
 
         <strong>※ 計算前提：</strong>
@@ -630,10 +652,14 @@
 
 
             /**
-             * 計算三招技能加總後的
-             * 平均每秒古代收集效率
+             * 只有「實際裝備的 2 顆龍玉」對應技能會參與收集。
+             * 未裝備的第 3 招不能計入古代技能收集效率。
              */
-            for (const skill of skills) {
+            const activeSkills = skills.filter(skill =>
+                combo.gems.includes(skill.name)
+            );
+
+            for (const skill of activeSkills) {
 
                 let actualCooldown =
                     skill.cooldown *
@@ -647,20 +673,12 @@
 
 
                 /**
-                 * 如果有裝備該技能對應的龍玉：
-                 *
-                 * CD 減少 20%
-                 *
-                 * 例如：
-                 * 原始 CD = 10 秒
-                 * 實際 CD = 10 × 0.8 = 8 秒
+                 * 這裡的 skill 已經確定是裝備中的龍玉技能，
+                 * 因此直接套用龍玉提供的 CD -20%。
+                 * 例如：10 秒 × 0.8 = 8 秒。
                  */
-                if (
-                    combo.gems.includes(skill.name)
-                ) {
-                    actualCooldown =
-                        actualCooldown * 0.8;
-                }
+                actualCooldown =
+                    actualCooldown * 0.8;
 
 
                 /**
@@ -773,6 +791,70 @@
 
             }
         );
+
+
+        /**
+         * 顯示第二個表格：三招一起計算，但只有裝備的 2 顆龍玉技能
+         * 套用龍玉 -20% CD；未裝備的第 3 招不套用這個效果。
+         */
+        const threeSkillTable =
+            document.getElementById("threeSkillResultTable");
+
+        threeSkillTable.innerHTML = "";
+
+        const threeSkillResults = combinations.map(combo => {
+            let totalEfficiency = 0;
+
+            for (const skill of skills) {
+                let actualCooldown =
+                    skill.cooldown *
+                    (1 - skill.extraCd / 100);
+
+                // 法/貓BUFF：所有技能 CD -8%
+                if (hasLawCatBuff) {
+                    actualCooldown *= 0.92;
+                }
+
+                // 只有裝備中的兩顆龍玉技能才享有龍玉 CD -20%
+                const hasGemEffect = combo.gems.includes(skill.name);
+                if (hasGemEffect) {
+                    actualCooldown *= 0.8;
+                }
+
+                const actualPercent =
+                    hasBanTableBuff
+                        ? skill.percent * 1.04
+                        : skill.percent;
+
+                totalEfficiency +=
+                    actualPercent / actualCooldown;
+            }
+
+            return {
+                name: combo.name,
+                thirdSkill: skills.find(skill => !combo.gems.includes(skill.name)).name,
+                efficiency: totalEfficiency,
+                time: totalEfficiency > 0
+                    ? 100 / totalEfficiency
+                    : Infinity
+            };
+        });
+
+        threeSkillResults.forEach(result => {
+            const displayTime =
+                result.time === Infinity
+                    ? "無法集滿"
+                    : result.time.toFixed(2) + " 秒";
+
+            threeSkillTable.innerHTML += `
+                <tr>
+                    <td>${result.name}</td>
+                    <td>${result.thirdSkill}（不計算龍玉 -20%）</td>
+                    <td>${result.efficiency.toFixed(3)} % / 秒</td>
+                    <td>${displayTime}</td>
+                </tr>
+            `;
+        });
 
 
         /**

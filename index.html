@@ -132,6 +132,41 @@
         box-shadow: 0 12px 28px rgba(92, 99, 232, 0.38);
     }
 
+    .buff-options {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin: 18px 0 8px;
+    }
+
+    .buff-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(9, 15, 29, 0.38);
+        cursor: pointer;
+        color: #cbd5e1;
+        font-weight: bold;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .buff-option:hover {
+        border-color: rgba(124, 131, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .buff-option input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        padding: 0;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
     table {
         width: 100%;
         border-collapse: collapse;
@@ -220,6 +255,8 @@
         .card { padding: 18px; border-radius: 14px; }
 
         .skill-grid { grid-template-columns: 1fr; }
+
+        .buff-options { grid-template-columns: 1fr; }
 
         table { font-size: 13px; }
 
@@ -371,6 +408,18 @@
 
     </div>
 
+    <div class="buff-options">
+        <label class="buff-option" for="lawCatBuff">
+            <input type="checkbox" id="lawCatBuff">
+            <span>法/貓BUFF：技能 CD -8%</span>
+        </label>
+
+        <label class="buff-option" for="banTableBuff">
+            <input type="checkbox" id="banTableBuff">
+            <span>班/表BUFF：收集古代技能效率 +4%</span>
+        </label>
+    </div>
+
     <br>
 
     <button onclick="calculate()">
@@ -414,10 +463,11 @@
         <strong>📌 計算規則：</strong><br>
         ① 每招技能都有自己的「每次命中收集古代技能 %」、「原始冷卻時間」與可選填的「額外-CD (紋章/技能) %」。<br>
         ② 額外-CD 留空時視為 <strong>0%</strong>；填寫後先套用：實際 CD = 原始 CD × (1 - 額外-CD%)。<br>
-        ③ 裝備對應+10以上龍玉後，該技能冷卻時間再減少 <strong>20%</strong>。<br>
-        ④ 裝備龍玉後的最終 CD = 套用額外-CD後的 CD × <strong>0.8</strong>。<br>
-        ⑤ 一般情況只能同時裝備 2 顆龍玉，因此會比較全部 3 種組合。<br>
-        ⑥ 以「平均每秒可收集多少古代技能 %」判斷哪一組效率最高。<br>
+        ③ 勾選「法/貓BUFF」後，所有技能 CD 再減少 <strong>8%</strong>（CD × 0.92）。<br>
+        ④ 裝備對應+10以上龍玉後，該技能冷卻時間再減少 <strong>20%</strong>（CD × 0.8）。<br>
+        ⑤ 勾選「班/表BUFF」後，每次收集古代技能量增加 <strong>4%</strong>；例如 10% 會變成 10.4%。<br>
+        ⑥ 一般情況只能同時裝備 2 顆龍玉，因此會比較全部 3 種組合。<br>
+        ⑦ 以「平均每秒可收集多少古代技能 %」判斷哪一組效率最高。<br>
         <br>
 
         <strong>※ 計算前提：</strong>
@@ -475,6 +525,13 @@
      * 主計算功能
      */
     function calculate() {
+
+        // 取得 BUFF 狀態
+        const hasLawCatBuff =
+            document.getElementById("lawCatBuff").checked;
+
+        const hasBanTableBuff =
+            document.getElementById("banTableBuff").checked;
 
         // 取得三種技能資料
         const dream = getSkill(
@@ -582,6 +639,12 @@
                     skill.cooldown *
                     (1 - skill.extraCd / 100);
 
+                // 法/貓BUFF：所有技能 CD 再減少 8%
+                if (hasLawCatBuff) {
+                    actualCooldown =
+                        actualCooldown * 0.92;
+                }
+
 
                 /**
                  * 如果有裝備該技能對應的龍玉：
@@ -607,8 +670,13 @@
                  * ÷
                  * 實際 CD
                  */
+                const actualPercent =
+                    hasBanTableBuff
+                        ? skill.percent * 1.04
+                        : skill.percent;
+
                 const efficiency =
-                    skill.percent / actualCooldown;
+                    actualPercent / actualCooldown;
 
 
                 totalEfficiency += efficiency;

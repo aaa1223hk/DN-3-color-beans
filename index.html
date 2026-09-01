@@ -885,8 +885,9 @@
 
         /**
          * 顯示最佳組合
+         * 這裡改用「三招技能效率比較（第三招不計算龍玉 -20%）」的最佳結果。
          */
-        const best = results[0];
+        const best = threeSkillResults[0];
 
 
         const bestTime =
@@ -905,7 +906,7 @@
             </h2>
 
             <p>
-                <strong>古代收集效率：</strong>
+                <strong>三招古代收集效率：</strong>
                 ${best.efficiency.toFixed(3)}
                 % / 秒
             </p>
@@ -916,7 +917,7 @@
             </p>
 
             <p>
-                這個組合在「裝備 2 顆龍玉」的條件下，
+                這個組合依「三招技能效率比較（第三招不計算龍玉 -20%）」的結果，
                 可以獲得最高的平均古代技能收集效率。
             </p>
 
